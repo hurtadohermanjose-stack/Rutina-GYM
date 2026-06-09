@@ -1084,6 +1084,29 @@
     if (timerInterval) clearInterval(timerInterval);
     document.getElementById('timerFloat').classList.remove('visible');
   }
+
+  // Service Worker para modo offline
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+      const CACHE = 'rutina-gym-v1';
+      self.addEventListener('install', e => {
+        e.waitUntil(
+          caches.open(CACHE).then(cache => cache.addAll(['./', './rutina-gym.html']))
+        );
+        self.skipWaiting();
+      });
+      self.addEventListener('activate', e => {
+        e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))));
+        self.clients.claim();
+      });
+      self.addEventListener('fetch', e => {
+        e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./rutina-gym.html'))));
+      });
+    `;
+    const blob = new Blob([swCode], {type: 'application/javascript'});
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(() => {});
+  }
 </script>
 </body>
 </html>
