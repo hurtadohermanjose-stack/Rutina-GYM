@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Mi Rutina</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap');
+  :root {
+    --bg: #0a0a0a; --surface: #141414; --card: #1c1c1c; --border: #2a2a2a;
+    --accent: #e8ff47; --accent2: #ff6b35; --text: #f0f0f0; --muted: #666;
+    --green: #4ade80; --purple: #a78bfa;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; max-width:430px; margin:0 auto; padding-bottom:110px; }
+
+  .header { padding:18px 20px 12px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; background:var(--bg); z-index:10; border-bottom:1px solid var(--border); }
+  .header h1 { font-family:'Bebas Neue',sans-serif; font-size:1.9rem; letter-spacing:2px; color:var(--accent); line-height:1; }
+  .header p { font-size:0.7rem; color:var(--muted); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+  .shoulder-badge { background:#1a0a00; border:1px solid var(--accent2); color:var(--accent2); font-size:0.65rem; padding:4px 10px; border-radius:20px; font-weight:600; text-transform:uppercase; white-space:nowrap; }
+
+  .day-tabs { display:flex; overflow-x:auto; gap:8px; padding:12px 20px; scrollbar-width:none; background:var(--bg); position:sticky; top:70px; z-index:9; }
+  .day-tabs::-webkit-scrollbar { display:none; }
+  .tab { flex-shrink:0; padding:8px 14px; border-radius:30px; border:1px solid var(--border); background:var(--surface); color:var(--muted); font-size:0.78rem; font-weight:600; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+  .tab.active { background:var(--accent); color:#000; border-color:var(--accent); }
+
+  .content { padding:14px 20px; }
+  .day-panel { display:none; }
+  .day-panel.active { display:block; }
+
+  .day-title { font-family:'Bebas Neue',sans-serif; font-size:1.7rem; letter-spacing:3px; line-height:1; }
+  .day-subtitle { color:var(--muted); font-size:0.72rem; letter-spacing:1px; text-transform:uppercase; margin:4px 0 16px; }
+
+  .progress-wrap { background:var(--surface); border-radius:30px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:12px; }
+  .progress-bar-outer { flex:1; height:6px; background:var(--border); border-radius:10px; overflow:hidden; }
+  .progress-bar-inner { height:100%; background:var(--accent); border-radius:10px; transition:width 0.4s ease; }
+  .progress-text { font-size:0.72rem; color:var(--muted); white-space:nowrap; }
+  .progress-pct { font-family:'Bebas Neue',sans-serif; font-size:1.1rem; color:var(--accent); }
+
+  .section-label { font-size:0.68rem; letter-spacing:2px; text-transform:uppercase; color:var(--muted); margin:18px 0 10px; padding-left:4px; display:flex; align-items:center; gap:8px; }
+  .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+  .exercise-card { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:10px; overflow:hidden; transition:border-color 0.2s; }
+  .exercise-card.done { border-color:var(--green); opacity:0.65; }
+  .exercise-header { display:flex; align-items:center; padding:13px 14px; cursor:pointer; gap:10px; }
+  .ex-num { font-family:'Bebas Neue',sans-serif; font-size:1.25rem; color:var(--accent); min-width:22px; line-height:1; }
+  .ex-info { flex:1; }
+  .ex-name { font-weight:600; font-size:0.92rem; line-height:1.2; }
+  .ex-tags { display:flex; gap:5px; margin-top:5px; flex-wrap:wrap; }
+  .tag { font-size:0.62rem; padding:2px 7px; border-radius:20px; font-weight:600; letter-spacing:0.3px; text-transform:uppercase; }
+  .tag-sets { background:#1a1a2e; color:#818cf8; border:1px solid #2a2a4e; }
+  .tag-reps { background:#1a2e1a; color:#4ade80; border:1px solid #2a4e2a; }
+  .tag-rest { background:#2e1a1a; color:#f87171; border:1px solid #4e2a2a; }
+  .tag-warn { background:#2e1a00; color:var(--accent2); border:1px solid #4e2a00; }
+  .tag-drop { background:#2e1a2e; color:var(--purple); border:1px solid #4e2a4e; }
+
+  .check-btn { width:28px; height:28px; border-radius:50%; border:2px solid var(--border); background:transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:0.9rem; transition:all 0.2s; flex-shrink:0; }
+  .check-btn.checked { background:var(--green); border-color:var(--green); }
+
+  .ex-notes { padding:0 14px 13px 46px; font-size:0.77rem; color:var(--muted); line-height:1.5; display:none; }
+  .ex-notes.visible { display:block; }
+  .ex-notes strong { color:var(--accent2); }
+
+  .tip-card { background:#1a0a00; border:1px solid var(--accent2); border-radius:12px; padding:12px 14px; margin-bottom:16px; font-size:0.8rem; line-height:1.5; color:#ffa07a; }
+  .tip-card strong { color:var(--accent2); display:block; margin-bottom:3px; font-size:0.72rem; text-transform:uppercase; letter-spacing:1px; }
+
+  .timer-float { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--accent); color:#000; border-radius:50px; padding:11px 26px; display:none; align-items:center; gap:10px; font-weight:700; font-size:0.95rem; box-shadow:0 4px 30px rgba(232,255,71,0.3); cursor:pointer; z-index:100; min-width:175px; justify-content:center; }
+  .timer-float.visible { display:flex; }
+  .timer-float.done-timer { background:var(--green); box-shadow:0 4px 30px rgba(74,222,128,0.3); }
+  .timer-time { font-family:'Bebas Neue',sans-serif; font-size:1.5rem; letter-spacing:2px; }
+
+  .rest-btns { display:none; position:fixed; bottom:82px; left:0; right:0; justify-content:center; gap:8px; z-index:99; padding:0 20px; flex-wrap:wrap; }
+  .rest-btn { padding:7px 13px; border-radius:20px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-size:0.78rem; font-weight:600; cursor:pointer; }
+
+  @keyframes checkPop { 0%{transform:scale(1)} 50%{transform:scale(1.3)} 100%{transform:scale(1)} }
+  .popping { animation:checkPop 0.25s ease; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>MI RUTINA</h1>
+    <p>5 días · Recomposición + Piernas</p>
+  </div>
+  <div class="shoulder-badge">⚠️ Hombro izq.</div>
+</div>
+
+<div class="day-tabs">
+  <div class="tab active" onclick="switchDay(0)">LUN</div>
+  <div class="tab" onclick="switchDay(1)">MAR</div>
+  <div class="tab" onclick="switchDay(2)">MIÉ</div>
+  <div class="tab" onclick="switchDay(3)">JUE</div>
+  <div class="tab" onclick="switchDay(4)">VIE</div>
+</div>
+
+<div class="content">
+
+<!-- ===== LUNES ===== -->
+<div class="day-panel active" id="day0">
+  <div class="day-title">LUNES</div>
+  <div class="day-subtitle">🔴 Pecho · Tríceps</div>
+  <div class="progress-wrap">
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="prog0" style="width:0%"></div></div>
+    <div class="progress-pct" id="progpct0">0%</div>
+    <div class="progress-text" id="progtext0">0/5</div>
+  </div>
+  <div class="section-label">Pecho</div>
+  <div class="exercise-card" id="d0e0">
+    <div class="exercise-header" onclick="toggleNotes('d0e0')">
+      <div class="ex-num">01</div><div class="ex-info"><div class="ex-name">Press Inclinado con Mancuernas</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">8–10 reps</span><span class="tag tag-rest">⏱ 90s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d0e0','prog0','progpct0','progtext0',5)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d0e0">💡 Ejercicio principal. Baja controlado 2–3 seg, sube explosivo. Escápulas retraídas. <strong>Prioridad #1 del día.</strong></div>
+  </div>
+  <div class="exercise-card" id="d0e1">
+    <div class="exercise-header" onclick="toggleNotes('d0e1')">
+      <div class="ex-num">02</div><div class="ex-info"><div class="ex-name">Press Plano con Mancuernas</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">10 reps</span><span class="tag tag-rest">⏱ 90s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d0e1','prog0','progpct0','progtext0',5)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d0e1">💡 El peso baja naturalmente después del inclinado. Mantén técnica, no compenses con ego.</div>
+  </div>
+  <div class="exercise-card" id="d0e2">
+    <div class="exercise-header" onclick="toggleNotes('d0e2')">
+      <div class="ex-num">03</div><div class="ex-info"><div class="ex-name">Aperturas en Máquina</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">12–15 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d0e2','prog0','progpct0','progtext0',5)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d0e2">💡 Aislamiento de pecho. Busca la quema, no el peso. Contrae en el punto de mayor aproximación.</div>
+  </div>
+  <div class="section-label">Tríceps</div>
+  <div class="exercise-card" id="d0e3">
+    <div class="exercise-header" onclick="toggleNotes('d0e3')">
+      <div class="ex-num">04</div><div class="ex-info"><div class="ex-name">Tríceps en Polea (cuerda)</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">12–15 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d0e3','prog0','progpct0','progtext0',5)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d0e3">💡 Separa las manos al final para mayor contracción. Codos pegados al cuerpo siempre.</div>
+  </div>
+  <div class="exercise-card" id="d0e4">
+    <div class="exercise-header" onclick="toggleNotes('d0e4')">
+      <div class="ex-num">05</div><div class="ex-info"><div class="ex-name">Press Inclinado en Máquina</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">8–12 reps</span><span class="tag tag-rest">⏱ 75s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d0e4','prog0','progpct0','progtext0',5)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d0e4">💡 Termina el pecho con menos demanda neural. Última serie hasta el fallo controlado.</div>
+  </div>
+</div>
+
+<!-- ===== MARTES ===== -->
+<div class="day-panel" id="day1">
+  <div class="day-title">MARTES</div>
+  <div class="day-subtitle">🔵 Espalda · Bíceps · Hombro posterior</div>
+  <div class="progress-wrap">
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="prog1" style="width:0%"></div></div>
+    <div class="progress-pct" id="progpct1">0%</div>
+    <div class="progress-text" id="progtext1">0/7</div>
+  </div>
+  <div class="section-label">Espalda</div>
+  <div class="exercise-card" id="d1e0">
+    <div class="exercise-header" onclick="toggleNotes('d1e0')">
+      <div class="ex-num">01</div><div class="ex-info"><div class="ex-name">Dominadas (agarre amplio)</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">Max reps</span><span class="tag tag-rest">⏱ 90s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d1e0','prog1','progpct1','progtext1',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d1e0">💡 Ya haces 12 reps — excelente. Baja completamente cada rep. Si llegas a 15 reps fácil, agrega peso con cinturón.</div>
+  </div>
+  <div class="exercise-card" id="d1e1">
+    <div class="exercise-header" onclick="toggleNotes('d1e1')">
+      <div class="ex-num">02</div><div class="ex-info"><div class="ex-name">Jalón al Pecho</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">8–10 reps</span><span class="tag tag-rest">⏱ 90s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d1e1','prog1','progpct1','progtext1',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d1e1">💡 Inclínate ligeramente, jala hacia la clavícula. Inicia con los codos, no las manos. Contrae dorsales abajo.</div>
+  </div>
+  <div class="exercise-card" id="d1e2">
+    <div class="exercise-header" onclick="toggleNotes('d1e2')">
+      <div class="ex-num">03</div><div class="ex-info"><div class="ex-name">Remo Sentado en Polea</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">10 reps</span><span class="tag tag-rest">⏱ 90s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d1e2','prog1','progpct1','progtext1',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d1e2">💡 Jala hacia el ombligo. Aprieta escápulas 1 segundo al final. Regresa lento y controlado.</div>
+  </div>
+  <div class="exercise-card" id="d1e3">
+    <div class="exercise-header" onclick="toggleNotes('d1e3')">
+      <div class="ex-num">04</div><div class="ex-info"><div class="ex-name">Pullover en Polea</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">12 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d1e3','prog1','progpct1','progtext1',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d1e3">💡 Brazos casi extendidos. El movimiento viene del hombro, no del codo. Estira bien arriba.</div>
+  </div>
+  <div class="section-label">Hombro posterior (manguito)</div>
+  <div class="exercise-card" id="d1e4">
+    <div class="exercise-header" onclick="toggleNotes('d1e4')">
+      <div class="ex-num">05</div><div class="ex-info"><div class="ex-name">Face Pulls en Polea</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">15 reps</span><span class="tag tag-rest">⏱ 60s</span><span class="tag tag-warn">⚠️ No saltar</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d1e4','prog1','progpct1','progtext1',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d1e4">💡 <strong>Clave para rehabilitar tu hombro.</strong> Jala hacia la cara, codos arriba, rota externamente. Pausa al final. Nunca te lo saltes.</div>
+  </div>
+  <div class="section-label">Bíceps</div>
+  <div class="exercise-card" id="d1e5">
+    <div class="exercise-header" onclick="toggleNotes('d1e5')">
+      <div class="ex-num">06</div><div class="ex-info"><div class="ex-name">Curl Bíceps con Mancuernas</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">10–12 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d1e5','prog1','progpct1','progtext1',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d1e5">💡 Supina la muñeca al subir. No balancees el cuerpo. Baja completamente para estiramiento total.</div>
+  </div>
+  <div class="exercise-card" id="d1e6">
+    <div class="exercise-header" onclick="toggleNotes('d1e6')">
+      <div class="ex-num">07</div><div class="ex-info"><div class="ex-name">Curl Martillo</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">12 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d1e6','prog1','progpct1','progtext1',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d1e6">💡 Grip neutro (pulgares arriba). Agrega grosor al brazo. Puedes hacerlos alternados o simultáneos.</div>
+  </div>
+</div>
+
+<!-- ===== MIÉRCOLES ===== -->
+<div class="day-panel" id="day2">
+  <div class="day-title">MIÉRCOLES</div>
+  <div class="day-subtitle">🟩 Piernas — Cuádriceps enfoque</div>
+  <div class="progress-wrap">
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="prog2" style="width:0%"></div></div>
+    <div class="progress-pct" id="progpct2">0%</div>
+    <div class="progress-text" id="progtext2">0/6</div>
+  </div>
+  <div class="section-label">Cuádriceps</div>
+  <div class="exercise-card" id="d2e0">
+    <div class="exercise-header" onclick="toggleNotes('d2e0')">
+      <div class="ex-num">01</div><div class="ex-info"><div class="ex-name">Hack Squat o Sentadilla Smith</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">8–10 reps</span><span class="tag tag-rest">⏱ 90s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d2e0','prog2','progpct2','progtext2',6)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d2e0">💡 En Smith pies ligeramente al frente. Baja hasta paralelo o más. Mantén técnica, no el ego.</div>
+  </div>
+  <div class="exercise-card" id="d2e1">
+    <div class="exercise-header" onclick="toggleNotes('d2e1')">
+      <div class="ex-num">02</div><div class="ex-info"><div class="ex-name">Prensa de Piernas</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">10–12 reps</span><span class="tag tag-rest">⏱ 120s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d2e1','prog2','progpct2','progtext2',6)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d2e1">💡 No bloquees las rodillas. Espalda baja pegada al respaldo. Pies posición media.</div>
+  </div>
+  <div class="exercise-card" id="d2e2">
+    <div class="exercise-header" onclick="toggleNotes('d2e2')">
+      <div class="ex-num">03</div><div class="ex-info"><div class="ex-name">Extensión de Cuádriceps</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">12–15 reps</span><span class="tag tag-rest">⏱ 60s</span><span class="tag tag-drop">Última: drop set</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d2e2','prog2','progpct2','progtext2',6)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d2e2">💡 Pausa 1 segundo arriba con rodilla extendida. Baja lento 3 seg. Última serie drop set para quemar.</div>
+  </div>
+  <div class="section-label">Glúteo · Aductores</div>
+  <div class="exercise-card" id="d2e3">
+    <div class="exercise-header" onclick="toggleNotes('d2e3')">
+      <div class="ex-num">04</div><div class="ex-info"><div class="ex-name">Sentadilla Sumo en Smith</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">12 reps</span><span class="tag tag-rest">⏱ 75s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d2e3','prog2','progpct2','progtext2',6)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d2e3">💡 Pies más abiertos que los hombros, puntas hacia afuera. Activa glúteo e interior de muslo. Baja controlado.</div>
+  </div>
+  <div class="exercise-card" id="d2e4">
+    <div class="exercise-header" onclick="toggleNotes('d2e4')">
+      <div class="ex-num">05</div><div class="ex-info"><div class="ex-name">Aductores en Máquina</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">15 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d2e4','prog2','progpct2','progtext2',6)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d2e4">💡 Contrae en el punto de mayor aproximación. Regresa lento. Estabilidad de cadera.</div>
+  </div>
+  <div class="section-label">Pantorrillas</div>
+  <div class="exercise-card" id="d2e5">
+    <div class="exercise-header" onclick="toggleNotes('d2e5')">
+      <div class="ex-num">06</div><div class="ex-info"><div class="ex-name">Pantorrillas (máquina o prensa)</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">15–20 reps</span><span class="tag tag-rest">⏱ 45s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d2e5','prog2','progpct2','progtext2',6)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d2e5">💡 Estiramiento completo abajo, pausa arriba. Varía posición de pies cada semana.</div>
+  </div>
+</div>
+
+<!-- ===== JUEVES ===== -->
+<div class="day-panel" id="day3">
+  <div class="day-title">JUEVES</div>
+  <div class="day-subtitle">🟡 Hombros · Abdomen</div>
+  <div class="tip-card">
+    <strong>⚠️ Protocolo hombro izquierdo</strong>
+    Siempre 2 series de calentamiento con peso ligero antes del press. Si hay molestia, cambia a máquina. Nunca press militar con barra.
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="prog3" style="width:0%"></div></div>
+    <div class="progress-pct" id="progpct3">0%</div>
+    <div class="progress-text" id="progtext3">0/8</div>
+  </div>
+  <div class="section-label">Hombros — calentar primero</div>
+  <div class="exercise-card" id="d3e0">
+    <div class="exercise-header" onclick="toggleNotes('d3e0')">
+      <div class="ex-num">01</div><div class="ex-info"><div class="ex-name">Elevaciones Laterales (calentamiento)</div><div class="ex-tags"><span class="tag tag-sets">2 series</span><span class="tag tag-reps">15 reps</span><span class="tag tag-rest">⏱ 45s</span><span class="tag tag-warn">⚠️ Peso ligero</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d3e0','prog3','progpct3','progtext3',8)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d3e0">💡 <strong>No se salta.</strong> Activa el manguito rotador antes del press. Peso casi sin esfuerzo.</div>
+  </div>
+  <div class="exercise-card" id="d3e1">
+    <div class="exercise-header" onclick="toggleNotes('d3e1')">
+      <div class="ex-num">02</div><div class="ex-info"><div class="ex-name">Press Hombros con Mancuernas</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">8–10 reps</span><span class="tag tag-rest">⏱ 90s</span><span class="tag tag-warn">⚠️ Monitorea</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d3e1','prog3','progpct3','progtext3',8)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d3e1">💡 Sentado, espalda apoyada. Baja hasta 90° en los codos, no más. Si hay molestia, reduce rango o cambia a máquina.</div>
+  </div>
+  <div class="exercise-card" id="d3e2">
+    <div class="exercise-header" onclick="toggleNotes('d3e2')">
+      <div class="ex-num">03</div><div class="ex-info"><div class="ex-name">Elevaciones Laterales (trabajo)</div><div class="ex-tags"><span class="tag tag-sets">5 series</span><span class="tag tag-reps">12–15 reps</span><span class="tag tag-rest">⏱ 60s</span><span class="tag tag-drop">Última: drop set</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d3e2','prog3','progpct3','progtext3',8)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d3e2">💡 No subas el hombro al elevar. Codo ligeramente doblado. Última serie drop set — baja el peso a la mitad y continúa.</div>
+  </div>
+  <div class="exercise-card" id="d3e3">
+    <div class="exercise-header" onclick="toggleNotes('d3e3')">
+      <div class="ex-num">04</div><div class="ex-info"><div class="ex-name">Pájaro con Mancuernas (deltoides posterior)</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">15 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d3e3','prog3','progpct3','progtext3',8)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d3e3">💡 Torso inclinado hacia adelante. Eleva los brazos hacia los lados con codo ligeramente doblado. Deltoides posterior = hombro completo y más ancho.</div>
+  </div>
+  <div class="exercise-card" id="d3e4">
+    <div class="exercise-header" onclick="toggleNotes('d3e4')">
+      <div class="ex-num">05</div><div class="ex-info"><div class="ex-name">Face Pulls en Polea</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">15 reps</span><span class="tag tag-rest">⏱ 60s</span><span class="tag tag-warn">⚠️ No saltar</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d3e4','prog3','progpct3','progtext3',8)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d3e4">💡 <strong>Rehabilitación hombro.</strong> Jala hacia la cara, codos arriba, rota externamente. Este ejercicio protege tu articulación a largo plazo.</div>
+  </div>
+  <div class="section-label">Abdomen</div>
+  <div class="exercise-card" id="d3e5">
+    <div class="exercise-header" onclick="toggleNotes('d3e5')">
+      <div class="ex-num">06</div><div class="ex-info"><div class="ex-name">Crunch en Máquina (con peso)</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">12–15 reps</span><span class="tag tag-rest">⏱ 45s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d3e5','prog3','progpct3','progtext3',8)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d3e5">💡 Contrae antes de mover el peso. Pausa 1 seg en máxima contracción. Sube el peso progresivamente.</div>
+  </div>
+  <div class="exercise-card" id="d3e6">
+    <div class="exercise-header" onclick="toggleNotes('d3e6')">
+      <div class="ex-num">07</div><div class="ex-info"><div class="ex-name">Elevaciones de Piernas colgado</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">12–15 reps</span><span class="tag tag-rest">⏱ 45s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d3e6','prog3','progpct3','progtext3',8)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d3e6">💡 En barra o dip station. Contrae abdomen al subir. Baja lento. Sin impulso.</div>
+  </div>
+  <div class="exercise-card" id="d3e7">
+    <div class="exercise-header" onclick="toggleNotes('d3e7')">
+      <div class="ex-num">08</div><div class="ex-info"><div class="ex-name">Plancha + Russian Twist</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">35s + 15/lado</span><span class="tag tag-rest">⏱ 45s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d3e7','prog3','progpct3','progtext3',8)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d3e7">💡 Super-set: plancha directa → Russian twist sin descanso entre ellos. Ahorra tiempo y más intensidad.</div>
+  </div>
+</div>
+
+<!-- ===== VIERNES ===== -->
+<div class="day-panel" id="day4">
+  <div class="day-title">VIERNES</div>
+  <div class="day-subtitle">🟣 Piernas — Isquiotibiales · Glúteo · Hombro lateral</div>
+  <div class="progress-wrap">
+    <div class="progress-bar-outer"><div class="progress-bar-inner" id="prog4" style="width:0%"></div></div>
+    <div class="progress-pct" id="progpct4">0%</div>
+    <div class="progress-text" id="progtext4">0/7</div>
+  </div>
+  <div class="section-label">Isquiotibiales · Glúteo</div>
+  <div class="exercise-card" id="d4e0">
+    <div class="exercise-header" onclick="toggleNotes('d4e0')">
+      <div class="ex-num">01</div><div class="ex-info"><div class="ex-name">Peso Muerto Rumano con Barra</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">10 reps</span><span class="tag tag-rest">⏱ 90s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d4e0','prog4','progpct4','progtext4',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d4e0">💡 Empiezas con 100 lb — sube 10 lb por semana. Espalda recta, empuja caderas hacia atrás. Siente el estiramiento en isquios.</div>
+  </div>
+  <div class="exercise-card" id="d4e1">
+    <div class="exercise-header" onclick="toggleNotes('d4e1')">
+      <div class="ex-num">02</div><div class="ex-info"><div class="ex-name">Curl Femoral en Máquina</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">12–15 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d4e1','prog4','progpct4','progtext4',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d4e1">💡 Caderas no se levantan del pad. Baja lento para mayor estímulo. Solo mueve de la rodilla hacia abajo.</div>
+  </div>
+  <div class="exercise-card" id="d4e2">
+    <div class="exercise-header" onclick="toggleNotes('d4e2')">
+      <div class="ex-num">03</div><div class="ex-info"><div class="ex-name">Prensa (pies altos y anchos — glúteo)</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">12 reps</span><span class="tag tag-rest">⏱ 90s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d4e2','prog4','progpct4','progtext4',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d4e2">💡 Pies más arriba y más separados en la prensa que el miércoles. Este cambio activa más glúteo e isquios que cuádriceps.</div>
+  </div>
+  <div class="exercise-card" id="d4e3">
+    <div class="exercise-header" onclick="toggleNotes('d4e3')">
+      <div class="ex-num">04</div><div class="ex-info"><div class="ex-name">Hip Thrust en máquina o banco</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">12–15 reps</span><span class="tag tag-rest">⏱ 75s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d4e3','prog4','progpct4','progtext4',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d4e3">💡 El mejor ejercicio para glúteo. Espalda apoyada en el banco, barra en las caderas. Sube hasta que el cuerpo quede recto. Aprieta glúteo arriba 1 segundo.</div>
+  </div>
+  <div class="exercise-card" id="d4e4">
+    <div class="exercise-header" onclick="toggleNotes('d4e4')">
+      <div class="ex-num">05</div><div class="ex-info"><div class="ex-name">Pantorrillas</div><div class="ex-tags"><span class="tag tag-sets">3 series</span><span class="tag tag-reps">15–20 reps</span><span class="tag tag-rest">⏱ 45s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d4e4','prog4','progpct4','progtext4',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d4e4">💡 Varía la posición de pies respecto al miércoles (punta adentro esta vez para activar cabeza interna).</div>
+  </div>
+  <div class="section-label">Hombro lateral (mantenimiento)</div>
+  <div class="exercise-card" id="d4e5">
+    <div class="exercise-header" onclick="toggleNotes('d4e5')">
+      <div class="ex-num">06</div><div class="ex-info"><div class="ex-name">Elevaciones Laterales con Mancuernas</div><div class="ex-tags"><span class="tag tag-sets">4 series</span><span class="tag tag-reps">15 reps</span><span class="tag tag-rest">⏱ 60s</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d4e5','prog4','progpct4','progtext4',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d4e5">💡 Tercer estímulo de hombro en la semana. Peso moderado, enfócate en la contracción. No uses impulso.</div>
+  </div>
+  <div class="exercise-card" id="d4e6">
+    <div class="exercise-header" onclick="toggleNotes('d4e6')">
+      <div class="ex-num">07</div><div class="ex-info"><div class="ex-name">Face Pulls en Polea</div><div class="ex-tags"><span class="tag tag-sets">2 series</span><span class="tag tag-reps">15 reps</span><span class="tag tag-rest">⏱ 60s</span><span class="tag tag-warn">⚠️ No saltar</span></div></div>
+      <button class="check-btn" onclick="toggleDone(event,'d4e6','prog4','progpct4','progtext4',7)">✓</button>
+    </div>
+    <div class="ex-notes" id="notes-d4e6">💡 <strong>Tercer día de face pulls en la semana.</strong> Con el tiempo esto estabiliza completamente tu hombro izquierdo.</div>
+  </div>
+</div>
+
+</div><!-- end content -->
+
+<div class="rest-btns" id="restBtns">
+  <button class="rest-btn" onclick="startTimer(45)">45s</button>
+  <button class="rest-btn" onclick="startTimer(60)">60s</button>
+  <button class="rest-btn" onclick="startTimer(90)">90s</button>
+  <button class="rest-btn" onclick="startTimer(120)">2 min</button>
+</div>
+
+<div class="timer-float" id="timerFloat" onclick="cancelTimer()">
+  <span id="timerLabel" style="font-size:0.72rem;letter-spacing:1px;">DESCANSO</span>
+  <span class="timer-time" id="timerDisplay">1:30</span>
+  <span style="font-size:0.72rem;">✕</span>
+</div>
+
+<script>
+  let currentDay = 0;
+  function switchDay(i) {
+    document.querySelectorAll('.day-panel').forEach((p,j) => p.classList.toggle('active', i===j));
+    document.querySelectorAll('.tab').forEach((t,j) => t.classList.toggle('active', i===j));
+    currentDay = i;
+  }
+  function toggleNotes(id) {
+    const n = document.getElementById('notes-' + id);
+    if (n) n.classList.toggle('visible');
+  }
+  const doneMap = {};
+  function toggleDone(e, cardId, progId, pctId, textId, total) {
+    e.stopPropagation();
+    const card = document.getElementById(cardId);
+    const btn = card.querySelector('.check-btn');
+    doneMap[cardId] = !doneMap[cardId];
+    btn.classList.toggle('checked', doneMap[cardId]);
+    card.classList.toggle('done', doneMap[cardId]);
+    btn.classList.add('popping');
+    setTimeout(() => btn.classList.remove('popping'), 300);
+    const panel = document.getElementById('day' + currentDay);
+    const cards = panel.querySelectorAll('.exercise-card');
+    let done = 0;
+    cards.forEach(c => { if (c.classList.contains('done')) done++; });
+    const pct = Math.round((done / total) * 100);
+    document.getElementById(progId).style.width = pct + '%';
+    document.getElementById(pctId).textContent = pct + '%';
+    document.getElementById(textId).textContent = done + '/' + total;
+    if (doneMap[cardId]) {
+      const rb = document.getElementById('restBtns');
+      rb.style.display = 'flex';
+      setTimeout(() => rb.style.display = 'none', 8000);
+    }
+  }
+  let timerInterval = null, timerSeconds = 0;
+  function startTimer(secs) {
+    document.getElementById('restBtns').style.display = 'none';
+    if (timerInterval) clearInterval(timerInterval);
+    timerSeconds = secs;
+    const tf = document.getElementById('timerFloat');
+    tf.classList.add('visible');
+    tf.classList.remove('done-timer');
+    document.getElementById('timerLabel').textContent = 'DESCANSO';
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      if (timerSeconds <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById('timerDisplay').textContent = '¡LISTO!';
+        tf.classList.add('done-timer');
+        document.getElementById('timerLabel').textContent = '✓ A TRABAJAR';
+        setTimeout(() => { tf.classList.remove('visible'); tf.classList.remove('done-timer'); }, 3000);
+      } else { updateTimerDisplay(); }
+    }, 1000);
+  }
+  function updateTimerDisplay() {
+    const m = Math.floor(timerSeconds / 60);
+    const s = timerSeconds % 60;
+    document.getElementById('timerDisplay').textContent = m + ':' + String(s).padStart(2,'0');
+  }
+  function cancelTimer() {
+    if (timerInterval) clearInterval(timerInterval);
+    document.getElementById('timerFloat').classList.remove('visible');
+  }
+</script>
+</body>
+</html>
